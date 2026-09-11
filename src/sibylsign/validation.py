@@ -19,7 +19,7 @@ from PIL import Image
 SVG_NS = "http://www.w3.org/2000/svg"
 _KEBAB_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _VALID_SIZES: frozenset[int] = frozenset({32, 64})
-_ALLOWED_FILL_COLORS: frozenset[str] = frozenset({"#000000", "#000", "black"})
+_ALLOWED_FILL_COLORS: frozenset[str] = frozenset({"#000000", "#000", "black", "none"})
 _ALLOWED_STROKE_COLORS: frozenset[str] = frozenset({"#000000", "#000", "black", "none"})
 
 
