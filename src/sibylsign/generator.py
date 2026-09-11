@@ -103,6 +103,9 @@ def _draw_shape(drawing: svgwrite.Drawing, shape: dict, size: int) -> None:
         )
 
 
+from .semantic_uikit import render_semantic_icon
+
+
 def generate_svg(concept: str, size: int = 32, color: SVGColor = SVGColor.BLACK) -> str:
     """Generate a mono-color-black SVG for the given concept.
 
@@ -118,8 +121,12 @@ def generate_svg(concept: str, size: int = 32, color: SVGColor = SVGColor.BLACK)
     normalised = _normalise_concept(concept)
     drawing = svgwrite.Drawing(size=(size, size))
     drawing.viewbox(0, 0, size, size)
-    for shape in _seeded_shape_plan(normalised, size):
-        _draw_shape(drawing, shape, size)
+    
+    # Try semantic handcrafted rendering first
+    if not render_semantic_icon(drawing, normalised, size, color.value):
+        for shape in _seeded_shape_plan(normalised, size):
+            _draw_shape(drawing, shape, size)
+            
     return drawing.tostring()
 
 
