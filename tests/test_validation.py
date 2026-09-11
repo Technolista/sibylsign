@@ -43,7 +43,7 @@ def _write_svg(path: Path, size: int) -> None:
 
 def _write_png(path: Path, size: int) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    img = Image.new("RGB", (size, size), (0, 0, 0))
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     img.save(path, format="PNG")
 
 

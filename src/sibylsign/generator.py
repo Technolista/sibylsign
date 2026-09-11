@@ -104,7 +104,13 @@ def _draw_shape(drawing: svgwrite.Drawing, shape: dict, size: int) -> None:
 
 
 def generate_svg(concept: str, size: int = 32, color: SVGColor = SVGColor.BLACK) -> str:
-    """Generate a mono-color-black SVG for the given concept.
+    """Generate a monochrome SVG for the given concept via the procedural fallback.
+
+    Per ADR 0002, ui-kit icons are no longer produced by this module —
+    they are authored by AI agents against STYLE.md. This generator stays
+    in place for the other 11 categories (animals, food-drink, etc.) where
+    recognition requirements are lower and the 5,200-per-category count
+    makes handcrafting impractical.
 
     Args:
         concept: a short kebab-case identifier for the icon (e.g. "dog").
@@ -149,10 +155,16 @@ def generate_png(concept: str, size: int = 32, color: SVGColor = SVGColor.BLACK)
 
 
 def save_png(path: Path, concept: str, size: int = 32, color: SVGColor = SVGColor.BLACK) -> Path:
-    """Generate and save a PNG to `path`. Creates parent directories as needed."""
+    """Generate and save a PNG to `path`. Creates parent directories as needed.
+
+    The PNG is saved in RGBA mode so the background remains transparent;
+    only the black strokes and fills are opaque. Any pre-existing
+    `image_mode` setting in the SVG that requests a non-transparent
+    background is honored so callers can override if they need to.
+    """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     img = generate_png(concept=concept, size=size, color=color)
-    # Convert to RGB for a compact, opaque PNG without alpha.
-    img.convert("RGB").save(path, format="PNG")
+    # Preserve transparency: convert to RGBA so the background stays clear.
+    img.convert("RGBA").save(path, format="PNG")
     return path
