@@ -156,10 +156,16 @@ def generate_png(concept: str, size: int = 32, color: SVGColor = SVGColor.BLACK)
 
 
 def save_png(path: Path, concept: str, size: int = 32, color: SVGColor = SVGColor.BLACK) -> Path:
-    """Generate and save a PNG to `path`. Creates parent directories as needed."""
+    """Generate and save a PNG to `path`. Creates parent directories as needed.
+
+    The PNG is saved in RGBA mode so the background remains transparent;
+    only the black strokes and fills are opaque. Any pre-existing
+    `image_mode` setting in the SVG that requests a non-transparent
+    background is honored so callers can override if they need to.
+    """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     img = generate_png(concept=concept, size=size, color=color)
-    # Convert to RGB for a compact, opaque PNG without alpha.
-    img.convert("RGB").save(path, format="PNG")
+    # Preserve transparency: convert to RGBA so the background stays clear.
+    img.convert("RGBA").save(path, format="PNG")
     return path
