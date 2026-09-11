@@ -316,6 +316,309 @@ def render_splitter(dwg: svgwrite.Drawing, size: int, modifier: str, color: str)
         dwg.add(dwg.line(start=(16 * s, 11 * s), end=(16 * s, 21 * s), stroke=color, stroke_width=2 * s))
 
 
+# -------------------------------------------------------------------------
+# Archetype Renderers (Navigation)
+# -------------------------------------------------------------------------
+
+def render_menu(dwg: svgwrite.Drawing, size: int, modifier: str, color: str) -> None:
+    s = size / 32.0
+    cx = size / 2
+    cy = size / 2
+    if modifier in {"vertical", "stacked"}:
+        # Three vertical bars
+        gap = 5 * s
+        for r_off in (-gap, 0, gap):
+            dwg.add(dwg.rect(insert=(cx - 9 * s, cy + r_off - 1 * s), size=(18 * s, 2 * s), rx=1 * s, ry=1 * s, fill=color))
+    elif modifier in {"dots"}:
+        gap = 5 * s
+        for r_off in (-gap, 0, gap):
+            dwg.add(dwg.circle(center=(cx, cy + r_off), r=2 * s, fill=color))
+    else:
+        # Three horizontal lines (hamburger)
+        gap = 4 * s
+        for r_off in (-gap, 0, gap):
+            dwg.add(dwg.rect(insert=(4 * s, cy + r_off - 1 * s), size=(24 * s, 2 * s), rx=1 * s, ry=1 * s, fill=color))
+
+
+def render_dropdown(dwg: svgwrite.Drawing, size: int, modifier: str, color: str) -> None:
+    s = size / 32.0
+    # Container
+    w, h = 26 * s, 14 * s
+    x, y = (size - w) / 2, (size - h) / 2
+    dwg.add(dwg.rect(insert=(x, y), size=(w, h), rx=2 * s, ry=2 * s, fill="none", stroke=color, stroke_width=1.5 * s))
+    # Selected text line
+    dwg.add(dwg.line(start=(x + 4 * s, size / 2), end=(x + 14 * s, size / 2), stroke=color, stroke_width=1.5 * s))
+    # Caret indicator
+    cx_c = x + w - 5 * s
+    cy_c = size / 2
+    if modifier in {"open", "expanded", "active"}:
+        # Up caret
+        dwg.add(dwg.polyline(points=[
+            (cx_c - 2.5 * s, cy_c + 1.5 * s),
+            (cx_c, cy_c - 1.5 * s),
+            (cx_c + 2.5 * s, cy_c + 1.5 * s),
+        ], fill="none", stroke=color, stroke_width=1.5 * s))
+        # Open menu panel below
+        if modifier in {"open", "expanded"}:
+            dwg.add(dwg.rect(insert=(x, y + h + 2 * s), size=(w, 10 * s), rx=1.5 * s, ry=1.5 * s, fill="none", stroke=color, stroke_width=1 * s))
+            dwg.add(dwg.line(start=(x + 4 * s, y + h + 5 * s), end=(x + 18 * s, y + h + 5 * s), stroke=color, stroke_width=1 * s))
+    else:
+        # Down caret
+        dwg.add(dwg.polyline(points=[
+            (cx_c - 2.5 * s, cy_c - 1.5 * s),
+            (cx_c, cy_c + 1.5 * s),
+            (cx_c + 2.5 * s, cy_c - 1.5 * s),
+        ], fill="none", stroke=color, stroke_width=1.5 * s))
+
+
+def render_tab(dwg: svgwrite.Drawing, size: int, modifier: str, color: str) -> None:
+    s = size / 32.0
+    if modifier in {"vertical"}:
+        # Vertical tab column
+        col_w = 10 * s
+        col_x = 4 * s
+        for i, h in enumerate((6 * s, 6 * s, 6 * s, 6 * s)):
+            ry = 4 * s + i * 7 * s
+            is_active = i == 1
+            if is_active:
+                dwg.add(dwg.rect(insert=(col_x - 1 * s, ry), size=(col_w + 2 * s, h), rx=2 * s, ry=2 * s, fill=color))
+                # Inverted indicator inside active tab
+                dwg.add(dwg.line(start=(col_x + 2 * s, ry + h / 2), end=(col_x + 8 * s, ry + h / 2), stroke="#ffffff", stroke_width=1.2 * s))
+            else:
+                dwg.add(dwg.rect(insert=(col_x, ry), size=(col_w, h), rx=1.5 * s, ry=1.5 * s, fill="none", stroke=color, stroke_width=1 * s))
+    else:
+        # Horizontal tab strip
+        tab_w = 6 * s
+        gap = 1 * s
+        for i in range(4):
+            tx = 3 * s + i * (tab_w + gap)
+            ty = 6 * s
+            is_active = (i == 1 and not modifier.endswith("right")) or (i == 3 and "right" in modifier) or (modifier in {"active"} and i == 2)
+            if is_active or modifier in {"active", "selected", "primary"} and i == 0:
+                dwg.add(dwg.rect(insert=(tx, ty), size=(tab_w, 16 * s), rx=2 * s, ry=2 * s, fill=color))
+                # Inner indicator
+                dwg.add(dwg.line(start=(tx + 2 * s, ty + 8 * s), end=(tx + tab_w - 2 * s, ty + 8 * s), stroke="#ffffff", stroke_width=1.2 * s))
+            else:
+                dwg.add(dwg.rect(insert=(tx, ty), size=(tab_w, 16 * s), rx=2 * s, ry=2 * s, fill="none", stroke=color, stroke_width=1 * s))
+        # Underline strip
+        dwg.add(dwg.line(start=(3 * s, 23 * s), end=(size - 3 * s, 23 * s), stroke=color, stroke_width=1 * s))
+
+
+def render_pagination(dwg: svgwrite.Drawing, size: int, modifier: str, color: str) -> None:
+    s = size / 32.0
+    cy = size / 2
+    # Left arrow
+    dwg.add(dwg.polyline(points=[
+        (6 * s, cy), (10 * s, cy - 4 * s), (10 * s, cy + 4 * s), (6 * s, cy),
+    ], fill="none", stroke=color, stroke_width=1.5 * s, stroke_linejoin="round"))
+    # Page dots
+    dot_r = 2 * s
+    for i in range(4):
+        cx_dot = 13 * s + i * 4 * s
+        is_active = (i == 1 and modifier in {"active", "current", "selected", "primary"}) or (modifier == "page-3" and i == 2) or (modifier == "page-4" and i == 3)
+        if is_active or (modifier in {"filled"}):
+            dwg.add(dwg.circle(center=(cx_dot, cy), r=dot_r, fill=color))
+        else:
+            dwg.add(dwg.circle(center=(cx_dot, cy), r=dot_r, fill="none", stroke=color, stroke_width=1.2 * s))
+    # Right arrow
+    dwg.add(dwg.polyline(points=[
+        (size - 6 * s, cy), (size - 10 * s, cy - 4 * s), (size - 10 * s, cy + 4 * s), (size - 6 * s, cy),
+    ], fill="none", stroke=color, stroke_width=1.5 * s, stroke_linejoin="round"))
+
+
+def render_breadcrumb(dwg: svgwrite.Drawing, size: int, modifier: str, color: str) -> None:
+    s = size / 32.0
+    cy = size / 2
+    # Three nodes separated by chevrons
+    node_w = 6 * s
+    node_h = 4 * s
+    # Node 1
+    dwg.add(dwg.rect(insert=(3 * s, cy - node_h / 2), size=(node_w, node_h), rx=1 * s, ry=1 * s, fill="none", stroke=color, stroke_width=1.2 * s))
+    # Chevron
+    dwg.add(dwg.polyline(points=[(10 * s, cy - 2 * s), (12 * s, cy), (10 * s, cy + 2 * s)], fill="none", stroke=color, stroke_width=1.2 * s))
+    # Node 2
+    dwg.add(dwg.rect(insert=(13 * s, cy - node_h / 2), size=(node_w, node_h), rx=1 * s, ry=1 * s, fill="none", stroke=color, stroke_width=1.2 * s))
+    # Chevron
+    dwg.add(dwg.polyline(points=[(20 * s, cy - 2 * s), (22 * s, cy), (20 * s, cy + 2 * s)], fill="none", stroke=color, stroke_width=1.2 * s))
+    # Node 3 (current/active) - filled
+    if modifier in {"active", "current", "selected", "primary", "filled"}:
+        dwg.add(dwg.rect(insert=(23 * s, cy - node_h / 2), size=(node_w, node_h), rx=1 * s, ry=1 * s, fill=color))
+    else:
+        dwg.add(dwg.rect(insert=(23 * s, cy - node_h / 2), size=(node_w, node_h), rx=1 * s, ry=1 * s, fill="none", stroke=color, stroke_width=1.2 * s))
+
+
+def render_navbar(dwg: svgwrite.Drawing, size: int, modifier: str, color: str) -> None:
+    s = size / 32.0
+    # Top header bar
+    dwg.add(dwg.rect(insert=(3 * s, 4 * s), size=(26 * s, 6 * s), rx=1.5 * s, ry=1.5 * s, fill=color))
+    # Hamburger menu
+    dwg.add(dwg.rect(insert=(5 * s, 6 * s), size=(3 * s, 1 * s), fill="#ffffff"))
+    dwg.add(dwg.rect(insert=(5 * s, 8 * s), size=(3 * s, 1 * s), fill="#ffffff"))
+    dwg.add(dwg.rect(insert=(5 * s, 10 * s), size=(3 * s, 1 * s), fill="#ffffff"))
+    # Logo dot
+    dwg.add(dwg.circle(center=(12 * s, 8 * s), r=1.5 * s, fill="#ffffff"))
+    # Nav items
+    for i, x in enumerate((16 * s, 21 * s, 26 * s)):
+        dwg.add(dwg.rect(insert=(x, 6 * s), size=(3 * s, 1 * s), fill="#ffffff"))
+        dwg.add(dwg.rect(insert=(x, 9 * s), size=(3 * s, 1 * s), fill="#ffffff"))
+    # Bottom content area
+    dwg.add(dwg.rect(insert=(3 * s, 14 * s), size=(26 * s, 14 * s), rx=1 * s, ry=1 * s, fill="none", stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.line(start=(6 * s, 19 * s), end=(26 * s, 19 * s), stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.line(start=(6 * s, 22 * s), end=(20 * s, 22 * s), stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.line(start=(6 * s, 25 * s), end=(24 * s, 25 * s), stroke=color, stroke_width=1 * s))
+
+
+def render_sidebar(dwg: svgwrite.Drawing, size: int, modifier: str, color: str) -> None:
+    s = size / 32.0
+    # Left sidebar
+    dwg.add(dwg.rect(insert=(3 * s, 3 * s), size=(8 * s, 26 * s), rx=1.5 * s, ry=1.5 * s, fill=color))
+    # Sidebar items
+    for i, y in enumerate((6 * s, 10 * s, 14 * s, 18 * s, 22 * s)):
+        is_active = (i == 1 and modifier in {"active", "selected", "primary"}) or (modifier == "item-3" and i == 2)
+        if is_active:
+            # Active item: inverted band
+            dwg.add(dwg.rect(insert=(3.5 * s, y), size=(7 * s, 2 * s), rx=1 * s, ry=1 * s, fill="#ffffff"))
+        else:
+            dwg.add(dwg.rect(insert=(4.5 * s, y), size=(5 * s, 2 * s), rx=1 * s, ry=1 * s, fill="#ffffff"))
+    # Main content area
+    dwg.add(dwg.rect(insert=(13 * s, 3 * s), size=(16 * s, 26 * s), rx=1 * s, ry=1 * s, fill="none", stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.line(start=(15 * s, 8 * s), end=(27 * s, 8 * s), stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.line(start=(15 * s, 13 * s), end=(27 * s, 13 * s), stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.line(start=(15 * s, 18 * s), end=(22 * s, 18 * s), stroke=color, stroke_width=1 * s))
+
+
+def render_footer(dwg: svgwrite.Drawing, size: int, modifier: str, color: str) -> None:
+    s = size / 32.0
+    # Main content area
+    dwg.add(dwg.line(start=(6 * s, 6 * s), end=(26 * s, 6 * s), stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.line(start=(6 * s, 10 * s), end=(26 * s, 10 * s), stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.line(start=(6 * s, 14 * s), end=(20 * s, 14 * s), stroke=color, stroke_width=1 * s))
+    # Footer bar
+    dwg.add(dwg.rect(insert=(3 * s, 22 * s), size=(26 * s, 6 * s), rx=1.5 * s, ry=1.5 * s, fill=color))
+    # Footer items
+    for i, x in enumerate((6 * s, 11 * s, 16 * s, 21 * s, 26 * s)):
+        dwg.add(dwg.rect(insert=(x, 24 * s), size=(2 * s, 2 * s), fill="#ffffff"))
+
+
+def render_header(dwg: svgwrite.Drawing, size: int, modifier: str, color: str) -> None:
+    s = size / 32.0
+    # Header bar
+    dwg.add(dwg.rect(insert=(3 * s, 4 * s), size=(26 * s, 7 * s), rx=1.5 * s, ry=1.5 * s, fill=color))
+    # Hamburger
+    dwg.add(dwg.rect(insert=(5 * s, 6 * s), size=(3 * s, 1 * s), fill="#ffffff"))
+    dwg.add(dwg.rect(insert=(5 * s, 8 * s), size=(3 * s, 1 * s), fill="#ffffff"))
+    dwg.add(dwg.rect(insert=(5 * s, 10 * s), size=(3 * s, 1 * s), fill="#ffffff"))
+    # Title pill (white)
+    dwg.add(dwg.rect(insert=(11 * s, 6 * s), size=(8 * s, 3 * s), rx=1 * s, ry=1 * s, fill="#ffffff"))
+    # Right icons
+    dwg.add(dwg.circle(center=(24 * s, 8 * s), r=1.5 * s, fill="#ffffff"))
+    dwg.add(dwg.circle(center=(27 * s, 8 * s), r=1.5 * s, fill="#ffffff"))
+    # Main content
+    dwg.add(dwg.line(start=(6 * s, 17 * s), end=(26 * s, 17 * s), stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.line(start=(6 * s, 22 * s), end=(26 * s, 22 * s), stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.line(start=(6 * s, 26 * s), end=(18 * s, 26 * s), stroke=color, stroke_width=1 * s))
+
+
+def render_stepper(dwg: svgwrite.Drawing, size: int, modifier: str, color: str) -> None:
+    s = size / 32.0
+    cy = size / 2
+    # Four steps with connecting lines
+    step_r = 4 * s
+    spacing = 7 * s
+    for i in range(4):
+        cx_step = 4 * s + i * spacing
+        is_done = i < 1 and modifier not in {"active", "current"}
+        is_active = i == 1 and modifier in {"active", "current", "selected", "primary"}
+        if is_done or modifier in {"completed", "filled"}:
+            # Filled circle with check
+            dwg.add(dwg.circle(center=(cx_step, cy), r=step_r, fill=color))
+            # Check mark inside
+            dwg.add(dwg.polyline(points=[
+                (cx_step - 2 * s, cy),
+                (cx_step - 0.5 * s, cy + 1.5 * s),
+                (cx_step + 2 * s, cy - 1.5 * s),
+            ], fill="none", stroke="#ffffff", stroke_width=1.5 * s, stroke_linejoin="round", stroke_linecap="round"))
+        elif is_active:
+            # Active ring
+            dwg.add(dwg.circle(center=(cx_step, cy), r=step_r, fill="none", stroke=color, stroke_width=2 * s))
+            dwg.add(dwg.circle(center=(cx_step, cy), r=2 * s, fill=color))
+        else:
+            # Empty ring
+            dwg.add(dwg.circle(center=(cx_step, cy), r=step_r, fill="none", stroke=color, stroke_width=1.2 * s))
+        # Connector line (not after last)
+        if i < 3:
+            x1 = cx_step + step_r
+            x2 = cx_step + spacing - step_r
+            if is_done:
+                dwg.add(dwg.line(start=(x1, cy), end=(x2, cy), stroke=color, stroke_width=1.5 * s))
+            else:
+                dwg.add(dwg.line(start=(x1, cy), end=(x2, cy), stroke=color, stroke_width=1 * s, stroke_dasharray=f"{2*s},{2*s}"))
+
+
+def render_wizard(dwg: svgwrite.Drawing, size: int, modifier: str, color: str) -> None:
+    s = size / 32.0
+    cy = size / 2
+    # Numbered step panel
+    panel_w = 26 * s
+    panel_h = 18 * s
+    panel_x = (size - panel_w) / 2
+    panel_y = (size - panel_h) / 2
+    dwg.add(dwg.rect(insert=(panel_x, panel_y), size=(panel_w, panel_h), rx=2 * s, ry=2 * s, fill="none", stroke=color, stroke_width=1.5 * s))
+    # Title bar
+    dwg.add(dwg.rect(insert=(panel_x, panel_y), size=(panel_w, 5 * s), rx=2 * s, ry=2 * s, fill=color))
+    dwg.add(dwg.rect(insert=(panel_x, panel_y + 2 * s), size=(panel_w, 3 * s), fill=color))
+    # Active step number circle
+    active_step = 2 if modifier in {"active", "current", "step-2", "step-3"} else 3 if modifier == "step-4" else 1
+    cx_circle = panel_x + 6 * s
+    cy_circle = panel_y + 12 * s
+    dwg.add(dwg.circle(center=(cx_circle, cy_circle), r=4 * s, fill=color))
+    # Number indicator (white dot inside)
+    dwg.add(dwg.rect(insert=(cx_circle - 2 * s, cy_circle - 0.5 * s), size=(4 * s, 1 * s), fill="#ffffff"))
+    # Step description lines
+    dwg.add(dwg.line(start=(cx_circle + 6 * s, cy_circle - 2 * s), end=(panel_x + panel_w - 3 * s, cy_circle - 2 * s), stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.line(start=(cx_circle + 6 * s, cy_circle), end=(panel_x + panel_w - 8 * s, cy_circle), stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.line(start=(cx_circle + 6 * s, cy_circle + 2 * s), end=(panel_x + panel_w - 12 * s, cy_circle + 2 * s), stroke=color, stroke_width=1 * s))
+    # Footer nav buttons
+    dwg.add(dwg.rect(insert=(panel_x + 4 * s, panel_y + panel_h - 5 * s), size=(6 * s, 3 * s), rx=1 * s, ry=1 * s, fill="none", stroke=color, stroke_width=1 * s))
+    dwg.add(dwg.rect(insert=(panel_x + panel_w - 10 * s, panel_y + panel_h - 5 * s), size=(6 * s, 3 * s), rx=1 * s, ry=1 * s, fill=color))
+
+
+def render_step(dwg: svgwrite.Drawing, size: int, modifier: str, color: str) -> None:
+    s = size / 32.0
+    cx = size / 2
+    cy = size / 2
+    # Determine which step number to show
+    if "step-1" in modifier or modifier == "1":
+        num = "1"
+    elif "step-2" in modifier or modifier == "2":
+        num = "2"
+    elif "step-3" in modifier or modifier == "3":
+        num = "3"
+    elif "step-4" in modifier or modifier == "4":
+        num = "4"
+    else:
+        num = "1"
+    is_done = modifier in {"completed", "done", "finished"}
+    is_active = modifier in {"active", "current", "selected", "primary"}
+    if is_done:
+        # Filled circle with check
+        dwg.add(dwg.circle(center=(cx, cy), r=9 * s, fill=color))
+        dwg.add(dwg.polyline(points=[
+            (cx - 4 * s, cy),
+            (cx - 1 * s, cy + 3 * s),
+            (cx + 4 * s, cy - 3 * s),
+        ], fill="none", stroke="#ffffff", stroke_width=2 * s, stroke_linejoin="round", stroke_linecap="round"))
+    elif is_active:
+        # Active step: thick ring + filled inner dot
+        dwg.add(dwg.circle(center=(cx, cy), r=9 * s, fill="none", stroke=color, stroke_width=2.5 * s))
+        dwg.add(dwg.circle(center=(cx, cy), r=4 * s, fill=color))
+    else:
+        # Default empty ring
+        dwg.add(dwg.circle(center=(cx, cy), r=9 * s, fill="none", stroke=color, stroke_width=1.5 * s))
+        # Number indicator (drawn as a small filled segment to suggest number)
+        dwg.add(dwg.rect(insert=(cx - 4 * s, cy - 1 * s), size=(8 * s, 2 * s), fill=color))
+
+
 # Map archetype functions
 ARCHETYPES: dict[str, Callable[[svgwrite.Drawing, int, str, str], None]] = {
     "button": render_button,
@@ -337,6 +640,19 @@ ARCHETYPES: dict[str, Callable[[svgwrite.Drawing, int, str, str], None]] = {
     "drag-handle": render_drag_handle,
     "resize-handle": render_resize_handle,
     "splitter": render_splitter,
+    "menu": render_menu,
+    "dropdown": render_dropdown,
+    "tab": render_tab,
+    "pagination": render_pagination,
+    "breadcrumb": render_breadcrumb,
+    "breadcrumb-1": render_breadcrumb,
+    "navbar": render_navbar,
+    "sidebar": render_sidebar,
+    "footer": render_footer,
+    "header": render_header,
+    "stepper": render_stepper,
+    "wizard": render_wizard,
+    "step": render_step,
 }
 
 
