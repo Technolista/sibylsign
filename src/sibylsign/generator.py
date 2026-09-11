@@ -10,9 +10,12 @@ from __future__ import annotations
 
 import enum
 import hashlib
+import io
 from pathlib import Path
 
+import cairosvg
 import svgwrite
+from PIL import Image
 
 
 class SVGColor(enum.Enum):
@@ -125,4 +128,31 @@ def save_svg(path: Path, concept: str, size: int = 32, color: SVGColor = SVGColo
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(generate_svg(concept=concept, size=size, color=color), encoding="utf-8")
+    return path
+
+
+def generate_png(concept: str, size: int = 32, color: SVGColor = SVGColor.BLACK) -> Image.Image:
+    """Generate a Pillow Image for the given concept at the requested size.
+
+    The PNG is rendered from the same SVG the generator produces, ensuring
+    visual correspondence with the SVG output. Only 32 and 64 are valid
+    sizes.
+    """
+    _validate_size(size)
+    svg_text = generate_svg(concept=concept, size=size, color=color)
+    png_bytes = cairosvg.svg2png(
+        bytestring=svg_text.encode("utf-8"),
+        output_width=size,
+        output_height=size,
+    )
+    return Image.open(io.BytesIO(png_bytes)).copy()
+
+
+def save_png(path: Path, concept: str, size: int = 32, color: SVGColor = SVGColor.BLACK) -> Path:
+    """Generate and save a PNG to `path`. Creates parent directories as needed."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    img = generate_png(concept=concept, size=size, color=color)
+    # Convert to RGB for a compact, opaque PNG without alpha.
+    img.convert("RGB").save(path, format="PNG")
     return path
