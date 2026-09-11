@@ -103,11 +103,14 @@ def _draw_shape(drawing: svgwrite.Drawing, shape: dict, size: int) -> None:
         )
 
 
-from .semantic_uikit import render_semantic_icon
-
-
 def generate_svg(concept: str, size: int = 32, color: SVGColor = SVGColor.BLACK) -> str:
-    """Generate a mono-color-black SVG for the given concept.
+    """Generate a monochrome SVG for the given concept via the procedural fallback.
+
+    Per ADR 0002, ui-kit icons are no longer produced by this module —
+    they are authored by AI agents against STYLE.md. This generator stays
+    in place for the other 11 categories (animals, food-drink, etc.) where
+    recognition requirements are lower and the 5,200-per-category count
+    makes handcrafting impractical.
 
     Args:
         concept: a short kebab-case identifier for the icon (e.g. "dog").
@@ -121,12 +124,8 @@ def generate_svg(concept: str, size: int = 32, color: SVGColor = SVGColor.BLACK)
     normalised = _normalise_concept(concept)
     drawing = svgwrite.Drawing(size=(size, size))
     drawing.viewbox(0, 0, size, size)
-    
-    # Try semantic handcrafted rendering first
-    if not render_semantic_icon(drawing, normalised, size, color.value):
-        for shape in _seeded_shape_plan(normalised, size):
-            _draw_shape(drawing, shape, size)
-            
+    for shape in _seeded_shape_plan(normalised, size):
+        _draw_shape(drawing, shape, size)
     return drawing.tostring()
 
 
